@@ -43,8 +43,9 @@ class RestAPIAssembler(AssemblerFactory):
             coordinates = [[network_nodes[node]["y"], network_nodes[node]["x"]] for node in tour]
             route_distance = sum(network.length(x, y) for x, y in zip(tour, tour[1:]))
             url = (
-                "https://google.com/maps/dir/" + 
-                "/".join([f"""{network_nodes[node]["y"]},{network_nodes[node]["x"]}""" for node in tour])
+                "https://google.com/maps/dir/"
+                + "/".join([f"""{network_nodes[node]["y"]},{network_nodes[node]["x"]}""" for node in tour])
+                + "/data=!3m1!4b1!4m2!4m1!3e2" # Mode of transport set to walking
             )
             route = {"coordinates": coordinates, "distance": route_distance, "url": url}
             routes["routes"].append(route)
