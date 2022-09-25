@@ -21,7 +21,7 @@ export default {
         radius: 2500
       },
       map: {
-        zoom: 13,
+        zoom: 8,
         bounds: null,
         url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
         attribution: '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors'
@@ -29,8 +29,8 @@ export default {
       user_inputs: {
         n: 5,
         distance: 3000,
-        lat: 0,
-        lng: 0,
+        lat: -37.8102361,
+        lng: 144.9627652,
       },
       api_output: [
         {"coordinates": [], "distance": 0},
