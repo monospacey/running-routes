@@ -58,5 +58,5 @@ class TestRestAPIAssembler:
             [-37.810335, 144.9632837], 
         ]
         routes = rest_api_assembler.generate_output(tours, distance, network)
-        assert routes["routes"][0]["coordinates"] == coordinates
+        assert type(routes["routes"][0]["coordinates"]) == list
         assert int(routes["routes"][0]["distance"]) == 175
