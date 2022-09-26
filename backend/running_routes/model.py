@@ -230,8 +230,7 @@ class SavingsModel(ModelFactory):
         ]
         percent_sample_size = int(len(coordinates)*sample_percent)
         sample_size = percent_sample_size if percent_sample_size < max_sample_size else max_sample_size
-        kmeans = KMeans(n_clusters=sample_size,
-                        random_state=seed).fit(coordinates)
+        kmeans = KMeans(n_clusters=sample_size, random_state=seed).fit(coordinates)
         sample_coordinates = [
             {"lat": center[0], "lng": center[1]}
             for center in kmeans.cluster_centers_
@@ -372,6 +371,106 @@ class SavingsModel(ModelFactory):
             return routes
 
         return [route for route in routes if route not in [route_0, route_1]] + [merged_route]
+
+    def _circularity_filter(self, n: int, routes: List[List], network: NetworkFactory) -> List[List]:
+         # https://sciencing.com/calculate-circularity-5138742.html
+        measurement = {}
+        for i, route in enumerate(routes):
+            extended_route = []
+            for source, target in zip(route, route[1:]):
+                extended_route.extend(network.path(source, target))
+            extended_route += [extended_route[0]]
+            extended_route = [group[0] for group in itertools.groupby(extended_route)]
+
+            subgraph = network.graph.subgraph(extended_route)
+            projected_subgraph = osmnx.projection.project_graph(subgraph)
+            y_coordinates = nx.get_node_attributes(projected_subgraph, "y")
+            x_coordinates = nx.get_node_attributes(projected_subgraph, "x")
+
+            routes_to_xy = [
+                [x_coordinates[node], y_coordinates[node]]
+                for node in extended_route]
+            polygon = shapely.geometry.Polygon(routes_to_xy)
+            area = polygon.area
+            perimeter = polygon.length
+            measurement[i] = 4*math.pi * area / perimeter**2
+        sorted_data = [i for i, _ in sorted(measurement.items(), key=lambda item: item[1], reverse=True)]
+
+        results = [routes[i] for i in sorted_data[:n]]
+        return results
+
+
+class GreedySavingsModel(ModelFactory):
+    """
+    Implements a modified version of the Clarke Wright's savings algorithm
+    https://web.mit.edu/urban_or_book/www/book/chapter6/6.4.12.html
+    """
+
+    def __init__(self, **parameters):
+        self.parameters = parameters
+
+        # Set default parameters
+        for key, value in SAVINGS_DEFAULT_PARAMETERS.items():
+            if key not in self.parameters:
+                self.parameters[key] = value
+
+    def solve(self, n: int, distance: int, start_coordinate: Dict, network: NetworkFactory) -> List[List]:
+        sample_coordinates = self._downsample(
+            network, self.parameters["sample_percent"], self.parameters["max_sample_size"], self.parameters["seed"])
+        sample_nodes = self._find_sample_nodes(start_coordinate, sample_coordinates, network)
+        savings = self._calculate_savings(sample_nodes, network)
+
+        depot = sample_nodes[0]
+        
+
+        for saving in savings:
+            routes = self._merge_routes(saving, routes, network, self.parameters["max_node"], distance)
+
+        results = self._circularity_filter(n, routes, network)
+        return results
+
+    def _downsample(self, network: NetworkFactory, sample_percent: float, max_sample_size: int, seed: int) -> List[Dict]:
+        """Downsample using KMeans"""
+        coordinates = [
+            [data["y"], data["x"]]
+            for _, data in network.nodes.items()
+        ]
+        percent_sample_size = int(len(coordinates)*sample_percent)
+        sample_size = percent_sample_size if percent_sample_size < max_sample_size else max_sample_size
+        kmeans = KMeans(n_clusters=sample_size, random_state=seed).fit(coordinates)
+        sample_coordinates = [
+            {"lat": center[0], "lng": center[1]}
+            for center in kmeans.cluster_centers_
+        ]
+        return sample_coordinates
+
+    def _find_sample_nodes(
+            self, start_coordinate: Dict, sample_coordinates: List[Dict],
+            network: NetworkFactory) -> List:
+        # `location` is the zeroth element by construction
+        # Remove any duplicate nodes
+        # https://stackoverflow.com/a/17016257
+        model_coordinates = [start_coordinate] + sample_coordinates
+        nearest_nodes = network.nearest_nodes(model_coordinates)
+        sample_nodes = list(dict.fromkeys(nearest_nodes))
+        return sample_nodes
+
+    def _calculate_savings(self, sample_nodes: List, network: NetworkFactory) -> Dict[Tuple, float]:
+        # If there are no path between source and target, return `self.total_length`
+        savings = {}
+
+        depot = sample_nodes[0]
+        for source, target in itertools.combinations(sample_nodes[1:], 2):
+            savings[source, target] = network.length(
+                depot, source) + network.length(target, depot) - network.length(source, target)
+
+        # https://stackoverflow.com/a/613218
+        sorted_savings = {edge: length for edge, length in sorted(savings.items(), key=lambda item: item[1])}
+        return sorted_savings
+
+    def _find_best_edge(self, distance: int, tour: List, valid_nodes: List, savings: Dict, max_node: int, network: NetworkFactory)-> List:
+        current_distance = sum(network.length(x, y) for x, y in zip(tour, tour[1:]))
+
 
     def _circularity_filter(self, n: int, routes: List[List], network: NetworkFactory) -> List[List]:
          # https://sciencing.com/calculate-circularity-5138742.html
