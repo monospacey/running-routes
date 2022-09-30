@@ -126,6 +126,7 @@ export default {
   <header>
     <div>
       <h1>Running routes</h1>
+      <h1>Hello Insights centre!</h1>
       <hr />
       <h2>I want to run</h2>
       <select v-model="user_inputs.distance" @change="updateBounds">
