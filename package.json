@@ -16,6 +16,11 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"leaflet": "^1.9.4"
+		"graphology": "^0.25.4",
+		"graphology-components": "^1.5.4",
+		"graphology-shortest-path": "^2.1.0",
+		"leaflet": "^1.9.4",
+		"ml-kmeans": "^6.0.0",
+		"utm-latlng": "^1.0.8"
 	}
 }
