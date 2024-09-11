@@ -3,13 +3,14 @@ export default async function downloader(radius, latitude, longitude) {
   const query = `[out:json];
 
     (
-    way(around:${radius}, ${latitude}, ${longitude})[highway~"primary|secondary|residential|tertiary|path|footway|cycleway|service"];
+    way(around:${radius}, ${latitude}, ${longitude})[highway~"primary|secondary|residential|tertiary|path|footway|cycleway|service|pedestrian"];
   ) -> .good;
     
   
     (
     way(around:${radius}, ${latitude}, ${longitude})[landuse~"retail|industrial"];
     way(around:${radius}, ${latitude}, ${longitude})[amenity="school"];
+    way(around:${radius}, ${latitude}, ${longitude})[builing="yes"];
   );
   
   
