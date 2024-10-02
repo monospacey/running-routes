@@ -214,6 +214,14 @@ genetic.fitness = function (entity) {
   return Math.abs(distance - genetic.userData.distance);
 };
 
+genetic.generation = function(population, generation, stats) {
+  let entity = population[0].entity;
+  if (genetic.fitness(entity) <= 10){
+    return false
+  } 
+
+}
+
 genetic.notification = function (population, generation, stats, isFinished) {
   // console.log(pop)
   let entity = population[0].entity;
