@@ -17,7 +17,7 @@
   let coordinate;
   let innerCircle;
   let outerCircle;
-  let distance=1500;
+  let distance = 1500;
   let radiusBuffer = 100;
   let coordinateMarker;
   let zoneNumber;
@@ -33,20 +33,20 @@
     multi: false,
     type: "undirected",
   });
-  let resultFlag = false
-  let total
+  let resultFlag = false;
+  let total;
   function onLocationFound(e) {
-    coordinate = {lat: e.latitude, lon: e.longitude}
-    updateShapes()
-    flyToBounds()
+    coordinate = { lat: e.latitude, lon: e.longitude };
+    updateShapes();
+    flyToBounds();
   }
   function onLocationError(e) {
-    alert(e.message)
+    alert(e.message);
   }
   function updateShapes() {
     if (map) {
-      const coordinateArray = [coordinate.lat, coordinate.lon]
-      console.log(coordinateArray)
+      const coordinateArray = [coordinate.lat, coordinate.lon];
+      console.log(coordinateArray);
       innerCircle.setLatLng(coordinateArray);
       outerCircle.setLatLng(coordinateArray);
       coordinateMarker.setLatLng(coordinateArray);
@@ -63,7 +63,7 @@
   }
   async function foo() {
     // Find UTM information on the center coordinate
-    console.log(coordinate)
+    console.log(coordinate);
     let pointUtmOutput = utm.convertLatLngToUtm(
       coordinate.lat,
       coordinate.lon,
@@ -76,9 +76,9 @@
     let temp_response = await downloader(
       distance / 2 + radiusBuffer,
       coordinate.lat,
-      coordinate.lon,
+      coordinate.lon
     );
-    console.log(temp_response)
+    console.log(temp_response);
 
     temp_response.elements.map((element) => {
       for (let i = 0; i < element.nodes.length - 1; i++) {
@@ -129,33 +129,17 @@
     // Only look at largest connected component
     cropToLargestConnectedComponent(graph);
 
-    // Draw the edges on the graph
-    // graph.forEachEdge(
-    //   (
-    //     edge,
-    //     attributes,
-    //     source,
-    //     target,
-    //     sourceAttributes,
-    //     targetAttributes
-    //   ) => {
-    //     L.polyline(
-    //       Array(
-    //         Array(sourceAttributes.lat, sourceAttributes.lon),
-    //         Array(targetAttributes.lat, targetAttributes.lon)
-    //       )
-    //     ).addTo(map);
-    //   }
-    // );
-
     // Run K-Means over the X and Y coordinates
     let kMeansData = graph.mapNodes((node, attributes) => [
       attributes.x,
       attributes.y,
     ]);
-    console.log(kMeansData.length)
+    console.log(kMeansData.length);
 
-    let kMeansAns = kmeans(kMeansData, Math.min(50, Math.floor(kMeansData.length, 10)));
+    let kMeansAns = kmeans(
+      kMeansData,
+      Math.min(50, Math.floor(kMeansData.length, 10))
+    );
 
     // Find the medoids from K-Means
     console.log(typeof kMeansAns.centroids);
@@ -181,7 +165,21 @@
     // Deduplicate using set
     // Set keeps the first instance of the array
     let medoids = [...new Set(rawMedoids)];
+    let medoidData = {};
+    console.log("Calculating single source");
+    medoids.map((u) => {
+      const paths = dijkstra.singleSource(graph, u);
+      for (const v in paths) {
+        let distance = edgePathFromNodePath(graph, paths[v]).reduce(
+          (accumulator, currentValue) =>
+            accumulator + graph.getEdgeAttribute(currentValue, "distance"),
+          0
+        );
 
+        medoidData[`${u}}-${v}`] = { path: paths[v], distance: distance };
+        medoidData[`${v}}-${u}`] = { path: paths[v].reverse(), distance: distance };
+      }
+    });
     var medoidCombinations = medoids.flatMap((v, i) =>
       medoids.slice(i + 1).map((w) => [v, w])
     );
@@ -265,7 +263,8 @@
             graph.getNodeAttribute(node, "lat"),
             graph.getNodeAttribute(node, "lon"),
           ];
-        }), {weight: 5}
+        }),
+        { weight: 5 }
       ).addTo(map);
     }
     console.log(total.toLocaleString(undefined, { maximumFractionDigits: 0 }));
@@ -318,9 +317,7 @@
       [boundOne.lat, boundOne.lng],
       [boundTwo.lat, boundTwo.lng],
     ]);
-    innerCircle.setStyle(
-      { fillOpacity: 0, opacity: 0 }
-    );
+    innerCircle.setStyle({ fillOpacity: 0, opacity: 0 });
     outerCircle = L.rectangle(
       [
         [boundOne.lat, boundOne.lng],
@@ -330,21 +327,26 @@
     );
 
     flyToBounds();
-    resultFlag = true
+    resultFlag = true;
   }
   function initMap() {
-    coordinate = {lat:-37.818078, lon:144.96681};
+    coordinate = { lat: -37.818078, lon: 144.96681 };
     map = L.map("map", { zoomSnap: 0 }).setView(coordinate, 13);
     // L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     //   attribution:
     //     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     // }).addTo(map);
-    L.tileLayer("https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png", {
-      attribution:
-        '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        updateWhenZooming: false
+    L.tileLayer(
+      "https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png",
+      {
+        attribution:
+          '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        updateWhenZooming: false,
+      }
+    ).addTo(map);
+    innerCircle = L.circle([coordinate.lat, coordinate.lon], {
+      radius: distance / 2,
     }).addTo(map);
-    innerCircle = L.circle([coordinate.lat, coordinate.lon], { radius: distance / 2 }).addTo(map);
     outerCircle = L.circle([coordinate.lat, coordinate.lon], {
       radius: distance / 2 + radiusBuffer,
       fillOpacity: 0,
@@ -352,10 +354,9 @@
     }).addTo(map);
     coordinateMarker = L.marker([coordinate.lat, coordinate.lon]).addTo(map);
     map.locate();
-    map.on("locationfound", onLocationFound)
-    map.on("locationerror", onLocationError)
+    map.on("locationfound", onLocationFound);
+    map.on("locationerror", onLocationError);
   }
-
 </script>
 
 <!-- <svelte:head>
@@ -369,8 +370,12 @@
 
 <div id="map" use:initMap></div>
 
-{#if !resultFlag }
-  <h3>I want to run {distance.toLocaleString(undefined, {maximumFractionDigits: 0})} meters.</h3>
+{#if !resultFlag}
+  <h3>
+    I want to run {distance.toLocaleString(undefined, {
+      maximumFractionDigits: 0,
+    })} meters.
+  </h3>
   <input
     type="range"
     min="1500"
@@ -383,7 +388,11 @@
   />
   <button on:click={foo}>Search</button>
 {:else}
-  <h3>Estimated distance: {total.toLocaleString(undefined, { maximumFractionDigits: 0 })} meters</h3>
+  <h3>
+    Estimated distance: {total.toLocaleString(undefined, {
+      maximumFractionDigits: 0,
+    })} meters
+  </h3>
 {/if}
 
 <style>
