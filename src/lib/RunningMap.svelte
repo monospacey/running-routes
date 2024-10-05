@@ -353,6 +353,7 @@
       opacity: 0,
     }).addTo(map);
     coordinateMarker = L.marker([coordinate.lat, coordinate.lon]).addTo(map);
+    flyToBounds()
     map.locate();
     map.on("locationfound", onLocationFound);
     map.on("locationerror", onLocationError);
