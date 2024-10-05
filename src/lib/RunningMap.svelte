@@ -138,7 +138,7 @@
 
     let kMeansAns = kmeans(
       kMeansData,
-      Math.min(50, Math.floor(kMeansData.length, 10))
+      Math.max(50, Math.floor(0.01*kMeansData.length))
     );
 
     // Find the medoids from K-Means
