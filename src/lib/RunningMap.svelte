@@ -28,11 +28,7 @@
     multi: false,
     type: "undirected",
   });
-  let medoidGraph = new Graph({
-    allowSelfLoops: false,
-    multi: false,
-    type: "undirected",
-  });
+  let fullMapsUrl
   let resultFlag = false;
   let total;
   function onLocationFound(e) {
@@ -139,7 +135,7 @@
 
     let kMeansAns = kmeans(
       kMeansData,
-      Math.max(50, Math.floor(0.01*kMeansData.length))
+      Math.max(50, Math.floor(0.01 * kMeansData.length))
     );
 
     // Find the medoids from K-Means
@@ -166,51 +162,63 @@
     // Deduplicate using set
     // Set keeps the first instance of the array
     let medoids = [...new Set(rawMedoids)];
-    let medoidData = {};
-    console.log("Calculating single source");
-    medoids.map((u) => {
-      const paths = dijkstra.singleSource(graph, u);
-      for (const v in paths) {
-        let distance = edgePathFromNodePath(graph, paths[v]).reduce(
-          (accumulator, currentValue) =>
-            accumulator + graph.getEdgeAttribute(currentValue, "distance"),
-          0
-        );
-
-        medoidData[`${u}}-${v}`] = { path: paths[v], distance: distance };
-        medoidData[`${v}}-${u}`] = { path: paths[v].reverse(), distance: distance };
-      }
-    });
+    let medoidPaths = {};
+    let graphEdges = {};
     var medoidCombinations = medoids.flatMap((v, i) =>
       medoids.slice(i + 1).map((w) => [v, w])
     );
     medoidCombinations.map((v) => {
       let nodePath = dijkstra.bidirectional(graph, v[0], v[1], "distance");
-      let distance = edgePathFromNodePath(graph, nodePath).reduce(
+      let edgePath = edgePathFromNodePath(graph, nodePath);
+      let distance = edgePath.reduce(
         (accumulator, currentValue) =>
           accumulator + graph.getEdgeAttribute(currentValue, "distance"),
         0
       );
-      medoidGraph.mergeNode(v[0], graph.getNodeAttributes(v[0]));
-      medoidGraph.mergeNode(v[1], graph.getNodeAttributes(v[1]));
-      medoidGraph.mergeEdge(v[0], v[1], {
-        nodePath: nodePath,
+      medoidPaths[`${v[0]}-${v[1]}`] = { path: nodePath, distance: distance };
+      medoidPaths[`${v[1]}-${v[0]}`] = {
+        path: [...nodePath].reverse(),
         distance: distance,
-      });
+      };
     });
     let medoidNodes = {};
-    medoidGraph.forEachNode((node, attr) => (medoidNodes[node] = attr));
-    let medoidEdges = {};
-    medoidGraph.forEachEdge((edge, attr, source, target) => {
-      medoidEdges[`${source}-${target}`] = attr.distance;
-      medoidEdges[`${target}-${source}`] = attr.distance;
-    });
-    console.log("Attributes of rootMedoid");
-    console.log(medoidGraph.getNodeAttributes(medoids[0]));
+    medoids.map((u) => (medoidNodes[u] = graph.getNodeAttributes(u)));
+
+    function findTripletInformation(x, y, z) {
+      let xyIndex;
+      let yzIndex;
+      let xyPath = medoidEdges[`${x}-${y}`].path;
+      let yzPath = medoidEdges[`${y}-${z}`].path;
+      for (let i = 0; i <= xyPath.length; i++) {
+        if (yzPath.indexOf(xyPath[i]) != -1) {
+          xyIndex = i;
+          yzIndex = yzPath.indexOf(xyPath[i]);
+          break;
+        }
+      }
+      let firstPart = xyPath.slice(0, xyIndex);
+      let secondPart = yzPath.slice(yzIndex);
+      let nodePath = firstPart.concat(secondPart);
+      let edgePath = edgePathFromNodePath(graph, nodePath);
+      let distance = edgePath.reduce(
+        (accumulator, currentValue) =>
+          accumulator + graph.getEdgeAttribute(currentValue, "distance"),
+        0
+      );
+      return { path: nodePath, distance: distance };
+    }
+
+    // let medoidEdges = {};
+    // medoidGraph.forEachEdge((edge, attr, source, target) => {
+    //   medoidEdges[`${source}-${target}`] = attr.distance;
+    //   medoidEdges[`${target}-${source}`] = attr.distance;
+    // });
+    // console.log("Attributes of rootMedoid");
+    // console.log(medoidGraph.getNodeAttributes(medoids[0]));
     // genetic algorithm!
     var config = {
-      iterations: 500,
-      size: 250,
+      iterations: 300,
+      size: 200,
       crossover: 0.7,
       mutation: 0.3,
       skip: 50,
@@ -218,7 +226,7 @@
     };
     let userData = {
       medoidNodes: medoidNodes,
-      medoidEdges: medoidEdges,
+      medoidEdges: medoidPaths,
       distance: distance,
       rootMedoid: medoids[0],
       solution: [],
@@ -240,24 +248,17 @@
     //     ],
     //   ).addTo(map);
     // });
-    L.marker(
-      [
-        graph.getNodeAttribute(nodePath[0], "lat"),
-        graph.getNodeAttribute(nodePath[0], "lon"),
-      ],
-      { title: "ROot" }
-    ).addTo(map);
-    total = edgePathFromNodePath(medoidGraph, nodePath).reduce(
-      (accumulator, currentValue) =>
-        accumulator + medoidGraph.getEdgeAttribute(currentValue, "distance"),
-      0
-    );
-    for (let n = 0; n < nodePath.length - 1; n++) {
-      let path = medoidGraph.getEdgeAttribute(
-        nodePath[n],
-        nodePath[n + 1],
-        "nodePath"
-      );
+    coordinateMarker.setLatLng([
+      graph.getNodeAttribute(nodePath[0], "lat"),
+      graph.getNodeAttribute(nodePath[0], "lon"),
+    ]);
+    total = genetic.lastSolution.routeDistance;
+    let niceRoute = genetic.lastSolution.niceRoute;
+    console.log("Nice Route");
+    console.log(niceRoute);
+    for (let n = 0; n < niceRoute.length - 1; n++) {
+      let path = medoidPaths[`${niceRoute[n]}-${niceRoute[n + 1]}`].path;
+      console.log(path);
       L.polyline(
         path.map((node) => {
           return [
@@ -265,19 +266,21 @@
             graph.getNodeAttribute(node, "lon"),
           ];
         }),
-        { weight: 5 }
+        { weight: 9}
       ).addTo(map);
     }
     console.log(total.toLocaleString(undefined, { maximumFractionDigits: 0 }));
     let mapsUrl = "https://www.google.com/maps/dir/";
-    let fullMapsUrl = nodePath.reduce(
+    fullMapsUrl = nodePath.reduce(
       (accumulator, currentValue) =>
         accumulator.concat(
           `${graph.getNodeAttribute(currentValue, "lat")},${graph.getNodeAttribute(currentValue, "lon")}/`
         ),
       mapsUrl
     );
-    console.log(fullMapsUrl.concat("data=!4m2!4m1!3e2"));
+    fullMapsUrl = fullMapsUrl.concat("data=!4m2!4m1!3e2");
+    console.log("printing full map url")
+    console.log(fullMapsUrl)
 
     const smallestX = nodePath.reduce((prev, curr) =>
       graph.getNodeAttribute(prev, "x") < graph.getNodeAttribute(curr, "x")
@@ -347,6 +350,7 @@
     ).addTo(map);
     innerCircle = L.circle([coordinate.lat, coordinate.lon], {
       radius: distance / 2,
+      // color: "#88C9DC"
     }).addTo(map);
     outerCircle = L.circle([coordinate.lat, coordinate.lon], {
       radius: distance / 2 + radiusBuffer,
@@ -354,55 +358,67 @@
       opacity: 0,
     }).addTo(map);
     coordinateMarker = L.marker([coordinate.lat, coordinate.lon]).addTo(map);
-    flyToBounds()
+    flyToBounds();
     map.locate();
     map.on("locationfound", onLocationFound);
     map.on("locationerror", onLocationError);
   }
 </script>
 
-<!-- <svelte:head>
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""
-  />
-</svelte:head> -->
-
 <div id="map" use:initMap></div>
 
 {#if !resultFlag}
+  <div>
   <h3>
     I want to run {distance.toLocaleString(undefined, {
       maximumFractionDigits: 0,
     })} meters.
   </h3>
-  <input
-    type="range"
-    min="1500"
-    max="10000"
-    bind:value={distance}
-    on:input={updateShapes}
-    on:input={flyToBounds}
-    class="slider"
-    id="myRange"
-  />
-  <button on:click={foo}>Search</button>
+    <input
+      type="range"
+      min="1500"
+      max="5000"
+      bind:value={distance}
+      on:input={updateShapes}
+      on:input={flyToBounds}
+      class="slider"
+      id="myRange"
+    />
+    <br />
+    <button on:click={foo} class=searchButton>Search</button>
+  </div>
 {:else}
+<div>
   <h3>
     Estimated distance: {total.toLocaleString(undefined, {
       maximumFractionDigits: 0,
     })} meters
   </h3>
+  <h3>
+    <a href={fullMapsUrl}>Google Maps Link</a>
+  </h3>
+  </div> 
 {/if}
 
 <style>
-  #map {
-    width: 80%;
+  #map{
+    width: 90%;
     margin-left: auto;
     margin-right: auto;
-    height: 70%;
+    height: 75%;
     border-radius: 3%;
   }
+  div {
+    width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+    height: 10%;
+  }
+  .slider, .searchButton {
+    width: 100%;
+    height: 33%
+  }
+  /* .searchButton, .slider {
+    background-color: #88C9DC
+  } */
 </style>
