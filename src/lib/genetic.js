@@ -145,8 +145,8 @@ genetic.entityToMedoids = function (entity) {
 
 genetic.findTripleNodeDistance = function (x, y, z) {
   return (
-    genetic.userData.medoidEdges[`${x}-${y}`] +
-    genetic.userData.medoidEdges[`${y}-${z}`]
+    genetic.userData.medoidEdges[`${x}-${y}`].distance +
+    genetic.userData.medoidEdges[`${y}-${z}`].distance
   );
 };
 
@@ -154,12 +154,13 @@ genetic.findRouteDistance = function (route) {
   let distance = 0;
   for (let i = -1; i < route.length - 1; i++) {
     distance +=
-      genetic.userData.medoidEdges[`${route.at(i)}-${route.at(i + 1)}`];
+      genetic.userData.medoidEdges[`${route.at(i)}-${route.at(i + 1)}`].distance;
   }
   return distance;
 };
 
 genetic.presentRoute = function (route) {
+  // Rotate the route so the rootMedoid is at the start and end
   const rootMedoidIndex = route.indexOf(genetic.userData.rootMedoid);
   let startRoute = route.slice(rootMedoidIndex);
   let middleRoute = route.slice(0, rootMedoidIndex);
@@ -215,15 +216,16 @@ genetic.fitness = function (entity) {
 };
 
 genetic.generation = function(population, generation, stats) {
+  // Add the ability to stop the genetic algorithm when it is near enough
+  // Currently set to 0.5% of the target distance
+  const threshold = 0.005
   let entity = population[0].entity;
-  if (genetic.fitness(entity) <= 10){
+  if (genetic.fitness(entity) <= threshold*genetic.userData.distance){
     return false
   } 
-
 }
 
 genetic.notification = function (population, generation, stats, isFinished) {
-  // console.log(pop)
   let entity = population[0].entity;
   let route = genetic.findRoute(entity);
   let routeDistance = genetic.findRouteDistance(route);
@@ -233,33 +235,6 @@ genetic.notification = function (population, generation, stats, isFinished) {
     niceRoute: genetic.presentRoute(route),
     rootMedoid: genetic.userData.rootMedoid,
   };
-  // lastSolution = pop[0].entity
 };
-
-// var medoidEdges = JSON.parse(
-//   fs.readFileSync("src/lib/medoidEdges.json", "utf8")
-// );
-// var medoidNodes = JSON.parse(
-//   fs.readFileSync("src/lib/medoidNodes.json", "utf8")
-// );
-
-// var config = {
-//   iterations: 400,
-//   size: 250,
-//   crossover: 0.7,
-//   mutation: 0.3,
-//   skip: 100,
-//   webWorkers: false,
-// };
-// let userData = {
-//   medoidNodes: medoidNodes,
-//   medoidEdges: medoidEdges,
-//   distance: 1500,
-//   solution: [],
-// };
-
-// genetic.evolve(config, userData);
-// console.log(genetic.rootMedoid)
-// console.log(genetic.lastSolution);
 
 export default genetic;
