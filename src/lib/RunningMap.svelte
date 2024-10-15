@@ -37,6 +37,7 @@
   let total;
   function onLocationFound(e) {
     coordinate = { lat: e.latitude, lon: e.longitude };
+    coordinateMarker.setLatLng([coordinate.lat, coordinate.lon]);
     updateShapes();
     flyToBounds();
   }
