@@ -369,11 +369,11 @@
 
 {#if !resultFlag}
   <div>
-  <h3>
+  <h2>
     I want to run {distance.toLocaleString(undefined, {
       maximumFractionDigits: 0,
     })} meters.
-  </h3>
+  </h2>
     <input
       type="range"
       min="1500"
@@ -389,14 +389,14 @@
   </div>
 {:else}
 <div>
-  <h3>
+  <h2>
     Estimated distance: {total.toLocaleString(undefined, {
       maximumFractionDigits: 0,
     })} meters
-  </h3>
-  <h3>
+  </h2>
+  <h2>
     <a href={fullMapsUrl}>Google Maps Link</a>
-  </h3>
+  </h2>
   </div> 
 {/if}
 
@@ -405,7 +405,7 @@
     width: 90%;
     margin-left: auto;
     margin-right: auto;
-    height: 75%;
+    height: 70%;
     border-radius: 3%;
   }
   div {
@@ -414,9 +414,19 @@
     margin-right: auto;
     height: 10%;
   }
-  .slider, .searchButton {
+  .slider {
     width: 100%;
-    height: 33%
+    height: 15%;
+  }
+  .searchButton {
+    width: 100%;
+    height: 35%;
+    font-family: Datalegreya, monospace, 'Courier New', Courier;
+    font-size:larger;
+    font-weight: bolder;
+  }
+  h2 {
+    font-family: Datalegreya, monospace, 'Courier New', Courier;
   }
   /* .searchButton, .slider {
     background-color: #88C9DC
