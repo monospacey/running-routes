@@ -1,6 +1,6 @@
 @font-face {
 	font-family: 'Datalegreya';
-	src: url('src/Datalegreya-Gradient.otf') format("otf");
+	src: url('static/Datalegreya-Gradient.otf') format("otf");
 	font-weight: 17000;
 	font-style: normal;
 }
